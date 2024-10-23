@@ -42,7 +42,9 @@ Top-down Pose Estimation의 출력 Heatmap들을 각 join 별로 temporarily sta
 이에 따라 현재 작성한 추론 코드도 Pipeline을 다음과 같이 구축한다.
 
 ![Pipeline](imgs/image.png)
+
 ### Multi-person Inference
+Top-down based HRNet을 기반으로 single person에 대해 action inference를 하기에 사람이 많아질 수록 linear하게 연산량이 증가할 수 있다.
 
 
 ## `pipeline_build/extract_pose.py`
