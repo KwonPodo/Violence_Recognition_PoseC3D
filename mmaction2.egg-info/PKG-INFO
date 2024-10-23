@@ -1,0 +1,67 @@
+Metadata-Version: 2.1
+Name: mmaction2
+Version: 1.2.0
+Summary: OpenMMLab Video Understanding Toolbox and Benchmark
+Home-page: https://github.com/open-mmlab/mmaction2
+Author: MMAction2 Contributors
+Author-email: openmmlab@gmail.com
+Maintainer: MMAction2 Contributors
+Maintainer-email: openmmlab@gmail.com
+License: Apache License 2.0
+Keywords: computer vision,video understanding
+Platform: UNKNOWN
+Classifier: Development Status :: 4 - Beta
+Classifier: License :: OSI Approved :: Apache Software License
+Classifier: Operating System :: OS Independent
+Classifier: Programming Language :: Python :: 3
+Classifier: Programming Language :: Python :: 3.7
+Classifier: Programming Language :: Python :: 3.8
+Classifier: Programming Language :: Python :: 3.9
+Description-Content-Type: text/markdown
+Provides-Extra: all
+Provides-Extra: tests
+Provides-Extra: optional
+Provides-Extra: mim
+Provides-Extra: multimodal
+License-File: LICENSE
+
+# Environment Setting
+
+### Conda Environment Settings
+1. `python.__version__ == 3.9`
+```bash
+conda create -n ${ENV_NAME} python=3.9
+```
+2. CUDA, Pytorch Version
+
+해당 코드는 CUDA 11.8, PyTorch 2.0.0 버전으로 실험되었습니다.
+```bash
+pip install torch==2.0.0+cu118 torchvision==0.15.1+cu118 torchaudio==2.0.1+cu118 --index-url https://download.pytorch.org/whl/cu118
+```
+
+### MMAction Installation
+
+**Install Dependency**
+```bash
+pip install -U openmim
+mim install "mmengine==0.10.5"
+mim install "mmcv==2.1.0"
+mim install "mmdet==3.2.0"
+mim install "mmpose==1.3.2"
+```
+
+**Build mmaction from source**
+```bash
+pip install -e .
+```
+
+# Sample Code Execution
+작업한 코드는 `pipeline_build` 폴더 내에 위치해 있다.
+
+### `pipeline_build/extract_pose.py`
+
+### `pipeline_build/inference.py`
+
+
+
+
