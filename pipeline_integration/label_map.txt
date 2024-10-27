@@ -1,0 +1,8 @@
+0: trip
+1: throw
+2: chase
+3: fall
+4: fight
+5: pick-pocket
+6: protest
+7: raise
