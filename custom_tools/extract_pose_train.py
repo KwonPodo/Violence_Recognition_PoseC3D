@@ -280,11 +280,11 @@ def extract_single_file(video_path, pose_model, out_root):
             anno['label'] = -1
 
             out_path = f'{os.path.join(out_root, vid_id)}_{i}.pkl'
-            mmengine.dump(anno, out_path)
 
-            # with open(f'{out_path}', 'wb') as handle:
-            #     pickle.dump(track_pose_results, 
-            #                 handle, protocol=pickle.HIGHEST_PROTOCOL)
+            with open(f'{out_path}', 'wb') as handle:
+                pickle.dump(anno, 
+                            handle, protocol=pickle.HIGHEST_PROTOCOL)
+            # mmengine.dump(anno, out_path)
 
         except Exception as e:
             print('Error while inferencing HRNet-w32')
