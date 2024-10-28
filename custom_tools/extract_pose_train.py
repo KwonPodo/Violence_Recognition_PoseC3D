@@ -283,12 +283,14 @@ def main():
             parser.error('File mode requires exactly one file path.')
 
         extract_single_file(args.paths[0], pose_model, args.out_root)
+
     elif args.directory:
         if len(args.paths) != 1:
             parser.error('Single Directory mode requires exactly one directory path.')
 
         dir_path = args.paths[0]
         extract_directory(dir_path, pose_model, args.out_root)
+
     elif args.parent_dirs:
         print(args.paths)
         parent_dir = args.paths[0]
@@ -302,6 +304,10 @@ def main():
         for dir_path in tqdm(dir_ls):
             print('#' * 50)
             print(f'Extracting from {dir_path}')
+            extract_directory(dir_path, pose_model, args.out_root)
+
+    elif args.multiple_dirs:
+        for dir_path in args.paths:
             extract_directory(dir_path, pose_model, args.out_root)
 
 
