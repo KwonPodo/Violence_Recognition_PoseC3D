@@ -5,14 +5,12 @@ import mmengine
 
 from tqdm import tqdm
 
-data_train_pth = 'data/train'
-
-data_valid_pth = 'data/valid'
+# data_train_pth = 'data/train'
+# data_valid_pth = 'data/valid'
+data_train_pth = 'data/long_dataset/train'
+data_valid_pth = 'data/long_dataset/valid'
 
 pkls_pth = 'extracted_pkls_related'
-
-# data_train_pth = 'mini_set/train'
-# data_valid_pth = 'mini_set/train'
 
 
 print(f'Train split from {data_train_pth}')
@@ -59,5 +57,5 @@ for pkl in pkls_ls:
         data = pickle.load(f)
         annotations['annotations'].append(data)
 
-out = './custom_tools/sub_sample_related.pkl'
+out = './custom_tools/new_dataset_train.pkl'
 mmengine.dump(annotations, out)

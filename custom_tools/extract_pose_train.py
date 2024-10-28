@@ -253,11 +253,38 @@ def extract_single_file(video_path, pose_model, out_root):
             )
             track_pose_results.append(pose_results)
 
-            out_path = f'{os.path.join(out_root, vid_id)}_{i}.pkl'
+            # align the num_person among frames
+            print(type(pose_results))
+            print(len(pose_results))
+            print(pose_results[0]['keypoints'].shape)
 
-            with open(f'{out_path}', 'wb') as handle:
-                pickle.dump(track_pose_results, 
-                            handle, protocol=pickle.HIGHEST_PROTOCOL)
+            num_persons = max([pose_results[0]['keypoints'].shape[0] for pose in pose_results])
+            num_points = pose_results[0]['keypoints'].shape[1]
+            num_frames = len(pose_results)
+            keypoints = np.zeros((num_persons, num_frame, num_points, 2), dtype=np.float32)
+            scores = np.zeros((num_persons, num_frame, num_points), dtype=np.float32)
+
+            for f_idx, frm_pose in enumerate(pose_results):
+                frm_num_persons = frm_pose['keypoints'].shape[0]
+                for p_idx in range(frm_num_persons):
+                    keypoints[p_idx, f_idx] = frm_pose['keypoints'][p_idx]
+                    scores[p_idx, f_idx] = frm_pose['keypoint_scores'][p_idx]
+
+            anno = dict()
+            anno['keypoint'] = keypoints
+            anno['keypoint_score'] = scores
+            anno['frame_dir'] = vid_id
+            anno['img_shape'] = (h, w)
+            anno['original_shape'] = (h, w)
+            anno['total_frames'] = keypoints.shape[1]
+            anno['label'] = -1
+
+            out_path = f'{os.path.join(out_root, vid_id)}_{i}.pkl'
+            mmengine.dump(anno, out_path)
+
+            # with open(f'{out_path}', 'wb') as handle:
+            #     pickle.dump(track_pose_results, 
+            #                 handle, protocol=pickle.HIGHEST_PROTOCOL)
 
         except Exception as e:
             print('Error while inferencing HRNet-w32')
