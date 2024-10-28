@@ -12,10 +12,10 @@ from mmaction.apis import detection_inference, pose_inference
 from mmaction.utils import frame_extract
 
 args = abc.abstractproperty()
-args.det_config = 'demo/demo_configs/faster-rcnn_r50-caffe_fpn_ms-1x_coco-person.py'  # noqa: E501
+args.det_config = 'custom_tools/configs/faster-rcnn_r50-caffe_fpn_ms-1x_coco-person.py'  # noqa: E501
 args.det_checkpoint = 'https://download.openmmlab.com/mmdetection/v2.0/faster_rcnn/faster_rcnn_r50_fpn_1x_coco-person/faster_rcnn_r50_fpn_1x_coco-person_20201216_175929-d022e227.pth'  # noqa: E501
 args.det_score_thr = 0.5
-args.pose_config = 'demo/demo_configs/td-hm_hrnet-w32_8xb64-210e_coco-256x192_infer.py'  # noqa: E501
+args.pose_config = 'pipeline_integration/demo_configs/td-hm_hrnet-w32_8xb64-210e_coco-256x192_infer.py'  # noqa: E501
 args.pose_checkpoint = 'https://download.openmmlab.com/mmpose/top_down/hrnet/hrnet_w32_coco_256x192-c78dce93_20200708.pth'  # noqa: E501
 
 
@@ -256,7 +256,7 @@ def pose_inference_with_align(args, frame_paths, det_results):
 
 def ntu_pose_extraction(vid, skip_postproc=False):
     tmp_dir = TemporaryDirectory()
-    frame_paths, _ = frame_extract(vid, out_dir=tmp_dir.name)
+    frame_paths, _, fps = frame_extract(vid, out_dir=tmp_dir.name)
     det_results, _ = detection_inference(
         args.det_config,
         args.det_checkpoint,
@@ -264,6 +264,13 @@ def ntu_pose_extraction(vid, skip_postproc=False):
         args.det_score_thr,
         device=args.device,
         with_score=True)
+    
+    import pickle
+    with open('./det_results.pkl', 'wb') as f:
+        pickle.dump(det_results, f, protocol=pickle.HIGHEST_PROTOCOL)
+    print(len(det_results))
+    print(det_results[0].shape)
+    print(det_results[0])
 
     if not skip_postproc:
         det_results = ntu_det_postproc(vid, det_results)
@@ -278,7 +285,8 @@ def ntu_pose_extraction(vid, skip_postproc=False):
     anno['img_shape'] = (1080, 1920)
     anno['original_shape'] = (1080, 1920)
     anno['total_frames'] = keypoints.shape[1]
-    anno['label'] = int(osp.basename(vid).split('A')[1][:3]) - 1
+    # anno['label'] = int(osp.basename(vid).split('A')[1][:3]) - 1
+    print(keypoints.shape)
     tmp_dir.cleanup()
 
     return anno

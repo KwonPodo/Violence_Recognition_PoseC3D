@@ -7,16 +7,17 @@ import os.path as osp
 from pathlib import Path
 from typing import List, Optional, Tuple, Union
 from pprint import pprint
+from tqdm import tqdm
 
 from torch import nn
 import numpy as np
 import mmengine
 from mmengine.structures import InstanceData
+from mmengine.utils import track_iter_progress
 
 from mmaction.apis import init_recognizer
 from mmaction.registry import VISUALIZERS
 from mmaction.utils import frame_extract
-from mmengine.utils import track_iter_progress
 
 def parse_args():
     parser = argparse.ArgumentParser(description='Pose Extraction for VD training')
@@ -34,6 +35,11 @@ def parse_args():
         help='Extract pose from files in a single directory.'
     )
     group.add_argument(
+        '-p', '--parent-dirs',
+        action='store_true',
+        help='Extract pose from dirs below parent directory.'
+    )
+    group.add_argument(
         '-m', '--multiple-dirs',
         action='store_true',
         help='Extract pose from multiple directories.'
@@ -47,7 +53,7 @@ def parse_args():
     )
     parser.add_argument(
         '--out-root',
-        default='./data/pose_pkls',
+        default='custom_tools/train_data/pose_pkls',
         help=''
     )
     parser.add_argument(
@@ -134,7 +140,6 @@ def pose_inference(model,
 
     results = []
     data_samples = []
-    print('Performing Human Pose Estimation for each frame')
     for f, d in track_iter_progress(list(zip(frame_paths, det_results))):
         pose_data_samples: List[PoseDataSample] \
             = inference_topdown(model, f, d[..., :4], bbox_format='xyxy')
@@ -183,7 +188,7 @@ def read_track_ann(fname=None, ):
         lines = f.readlines()
     
     for i, line in enumerate(lines):
-        lines[i] = list(map(float, line.split(',')))[:-3]
+        lines[i] = list(map(float, line.split(',')))[:-1]
         lines[i][0] = int(lines[i][0]) # frame_id (0-indexed)
         lines[i][1] = int(lines[i][1]) - 1 # track_id starts with 1, change to 0-index (1-indexed)
     
@@ -213,13 +218,15 @@ def read_track_ann(fname=None, ):
 
 def extract_single_file(video_path, pose_model, out_root):
     # Get Tracking Results
-    bytetrack_ann_path = video_path + '.txt'
+    bytetrack_ann_path = video_path + '_related.txt'
+    vid_id = video_path.split('/')[-1].split('.')[0]
 
     tmp_dir = tempfile.TemporaryDirectory()
     frame_paths, original_frames, fps = frame_extract(
         video_path, out_dir=tmp_dir.name
     )
 
+    print(f'\nExtracting Pose from {video_path}')
     print(f'frame start : {frame_paths[0]}, frame end : {frame_paths[-1]}')
     print(f'len(frame_paths : {len(frame_paths)})')
     print(f'frame shape : {original_frames[0].shape}')
@@ -238,6 +245,7 @@ def extract_single_file(video_path, pose_model, out_root):
         # Get Pose Results
         # List[np.ndarray(1,4)]
         try:
+            print(f'Performing Human Pose Estimation for track_id : {i} on each frame')
             pose_results, pose_datasample = pose_inference(
                 pose_model,
                 frame_paths,
@@ -245,20 +253,25 @@ def extract_single_file(video_path, pose_model, out_root):
             )
             track_pose_results.append(pose_results)
 
+            out_path = f'{os.path.join(out_root, vid_id)}_{i}.pkl'
+
+            with open(f'{out_path}', 'wb') as handle:
+                pickle.dump(track_pose_results, 
+                            handle, protocol=pickle.HIGHEST_PROTOCOL)
+
         except Exception as e:
             print('Error while inferencing HRNet-w32')
             print(f'{e}')
             tmp_dir.cleanup()
         
-
-    vid_id = video_path.split('/')[-1].split('.')[0]
-    out_path = f'{os.path.join(out_root, vid_id)}.pkl'
-    print(out_path)
-    # with open(f'{out_path}', 'wb') as handle:
-    #     pickle.dump(track_pose_results, 
-    #                 handle, protocol=pickle.HIGHEST_PROTOCOL)
-
     tmp_dir.cleanup()
+
+def extract_directory(dir_path, pose_model, out_root):
+    video_ls = [os.path.join(dir_path, vpth) for vpth in os.listdir(dir_path) if vpth.endswith(('.mp4', '.avi'))]
+
+    for video_path in video_ls:
+        extract_single_file(video_path, pose_model, out_root)
+    
 
 def main():
     args, parser = parse_args()
@@ -268,10 +281,28 @@ def main():
     if args.file:
         if len(args.paths) != 1:
             parser.error('File mode requires exactly one file path.')
+
         extract_single_file(args.paths[0], pose_model, args.out_root)
     elif args.directory:
         if len(args.paths) != 1:
             parser.error('Single Directory mode requires exactly one directory path.')
+
+        dir_path = args.paths[0]
+        extract_directory(dir_path, pose_model, args.out_root)
+    elif args.parent_dirs:
+        print(args.paths)
+        parent_dir = args.paths[0]
+
+        if not os.path.exists(parent_dir):
+            raise ValueError(f"경로가 존재하지 않습니다: {parent_dir}")
+        
+        dir_ls = [os.path.join(parent_dir, d) for d in os.listdir(parent_dir) 
+                    if os.path.isdir(os.path.join(parent_dir, d))]
+
+        for dir_path in tqdm(dir_ls):
+            print('#' * 50)
+            print(f'Extracting from {dir_path}')
+            extract_directory(dir_path, pose_model, args.out_root)
 
 
 
