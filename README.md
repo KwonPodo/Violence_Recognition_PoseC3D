@@ -31,8 +31,11 @@ pip install -e .
 # Train & Test
 ## Train
 
+```bash
 python tools/train.py ${CONFIG_FILE} [optional arguments]
+```
 
+_Example_
 ```bash
 python tools/train.py configs/skeleton/posec3d/violence_custom_slowonly_r50_8xb16-u48-240e_ntu60-xsub-keypoint.py
 ```
@@ -41,6 +44,11 @@ python tools/train.py configs/skeleton/posec3d/violence_custom_slowonly_r50_8xb1
 
 ```bash
 python tools/test.py ${CONFIG_FILE} ${CHECKPOINT_FILE} [optional arguments]
+```
+
+_Example_
+```bash
+python tools/test.py configs/skeleton/posec3d/violence_custom_slowonly_r50_8xb16-u48-240e_ntu60-xsub-keypoint.py pipeline_integration/weights/best_acc_top1_epoch_62.pth
 ```
 
 
