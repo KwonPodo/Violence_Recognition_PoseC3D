@@ -28,7 +28,23 @@ mim install "mmpose==1.3.2"
 pip install -e .
 ```
 
-# Sample Code Execution
+# Train & Test
+## Train
+
+python tools/train.py ${CONFIG_FILE} [optional arguments]
+
+```bash
+python tools/train.py configs/skeleton/posec3d/violence_custom_slowonly_r50_8xb16-u48-240e_ntu60-xsub-keypoint.py
+```
+
+## Test
+
+```bash
+python tools/test.py ${CONFIG_FILE} ${CHECKPOINT_FILE} [optional arguments]
+```
+
+
+# Pipeline Integration - Code Execution
 작업한 모든 코드는 `pipeline_build` 폴더 내에 위치해 있다.
 
 ## Notification
