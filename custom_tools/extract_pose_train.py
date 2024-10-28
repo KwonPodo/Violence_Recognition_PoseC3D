@@ -167,7 +167,7 @@ def pose_inference(model,
 
     return results, data_samples
 
-def read_track_ann(fname=None, ):
+def read_track_ann(fname=None, related=None):
     """Read ByteTrack Results.
     Track Results : [[frame_id, track_id, x, y, w, h, score, -1, -1, -1]].
     frame_id starts with 0, track_id starts with 1.
@@ -182,13 +182,18 @@ def read_track_ann(fname=None, ):
         np.ndarray.shape : (1, 4) == (tlx, tly, tlx+w, tly+h)
     """
     assert fname is not None
+    assert related is not None
     
     print(f'Reading {fname}')
     with open(fname, 'r') as f:
         lines = f.readlines()
     
     for i, line in enumerate(lines):
-        lines[i] = list(map(float, line.split(',')))[:-1]
+        if related:
+            lines[i] = list(map(float, line.split(',')))[:-1]
+        else:
+            lines[i] = list(map(float, line.split(',')))[:-3]
+            
         lines[i][0] = int(lines[i][0]) # frame_id (0-indexed)
         lines[i][1] = int(lines[i][1]) - 1 # track_id starts with 1, change to 0-index (1-indexed)
     
@@ -218,7 +223,14 @@ def read_track_ann(fname=None, ):
 
 def extract_single_file(video_path, pose_model, out_root):
     # Get Tracking Results
-    bytetrack_ann_path = video_path + '_related.txt'
+    related = None
+    if os.path.exists(video_path + '_related.txt'):
+        bytetrack_ann_path = video_path + '_related.txt'
+        related = True
+    else:
+        bytetrack_ann_path = video_path + '.txt'
+        related = False
+
     vid_id = video_path.split('/')[-1].split('.')[0]
 
     tmp_dir = tempfile.TemporaryDirectory()
@@ -236,7 +248,7 @@ def extract_single_file(video_path, pose_model, out_root):
     h, w, _ = original_frames[0].shape
 
     # List[List[np.ndarray]] : (# of person, # of frame, (1, 4))
-    track_results = read_track_ann(bytetrack_ann_path)
+    track_results = read_track_ann(bytetrack_ann_path, related)
 
     track_pose_results = []
 
@@ -284,7 +296,6 @@ def extract_single_file(video_path, pose_model, out_root):
             with open(f'{out_path}', 'wb') as handle:
                 pickle.dump(anno, 
                             handle, protocol=pickle.HIGHEST_PROTOCOL)
-            # mmengine.dump(anno, out_path)
 
         except Exception as e:
             print('Error while inferencing HRNet-w32')
