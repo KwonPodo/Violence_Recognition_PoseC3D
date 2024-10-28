@@ -53,7 +53,7 @@ python tools/test.py configs/skeleton/posec3d/violence_custom_slowonly_r50_8xb16
 
 
 # Pipeline Integration - Code Execution
-작업한 모든 코드는 `pipeline_build` 폴더 내에 위치해 있다.
+작업한 추론 코드는 `pipeline_integration` 폴더 내에 위치해 있다.
 
 ## Notification
 ### Pipeline
@@ -71,10 +71,10 @@ Top-down Pose Estimation의 출력 Heatmap들을 각 join 별로 temporarily sta
 Top-down based HRNet을 기반으로 single person에 대해 action inference를 하기에 사람이 많아질 수록 linear하게 연산량이 증가할 수 있다.
 
 
-## `pipeline_build/extract_pose.py`
+## `pipeline_integration/extract_pose.py`
 #### Pose Extraction Example  
 ```bash
-python pipeline_build/extract_pose.py --video-path ./pipeline_build/long_subset/1_074_1_01.mp4
+python pipeline_integration/extract_pose.py --video-path ./pipeline_build/long_subset/1_074_1_01.mp4
 ```
 활용하는 Action Recognition Model인 [PoseC3D](https://arxiv.org/abs/2104.13586) 모델이 원하는 Human Pose Keypoint들의 형태로 뽑아 `pipeline_build/sample/long_subset`내에 저장하는 코드.
 
@@ -122,9 +122,9 @@ python pipeline_build/extract_pose.py --video-path ./pipeline_build/long_subset/
 ```
 
 
-## `pipeline_build/inference.py`
+## `pipeline_integration/inference.py`
 ```bash
-python pipeline_build/inference.py --pose-file-path pipeline_build/sample/long_subset/1_071_1_04.pkl --clip-len 48 --predict-step-size 12 --device cuda:0
+python pipeline_integration/inference.py --pose-file-path pipeline_integration/sample/long_subset/1_071_1_04.pkl --clip-len 48 --predict-step-size 12 --device cuda:0
 ```
 extract_pose.py로 뽑은 pkl 파일들을 input으로 하여 sliding window fashion으로 inference를 구현.
 
@@ -154,7 +154,7 @@ extract_pose.py로 뽑은 pkl 파일들을 input으로 하여 sliding window fas
 
 ### Input/Output
 입력:
-- `pipeline_build/inference.py`로 추출한 Pose Data.
+- `pipeline_integration/inference.py`로 추출한 Pose Data.
 
 최종 출력:
 - 'pred_score': 출력된 각 action class 별 확률
