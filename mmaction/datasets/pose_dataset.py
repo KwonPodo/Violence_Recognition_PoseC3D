@@ -66,7 +66,9 @@ class PoseDataset(BaseActionDataset):
             split, annos = data_list['split'], data_list['annotations']
             identifier = 'filename' if 'filename' in annos[0] else 'frame_dir'
             split = set(split[self.split])
-            data_list = [x for x in annos if x[identifier] in split]
+            data_list = annos
+            # data_list = [x for x in annos if x[identifier] in split]
+            # data_list = [x for x in annos if any(x[identifier] in split_str for split_str in split)]
 
         # Sometimes we may need to load video from the file
         if 'video' in self.data_prefix:

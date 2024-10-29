@@ -54,6 +54,7 @@ def parse_args():
     parser.add_argument(
         '--out-root',
         default='custom_tools/train_data/pose_pkls',
+        # default='custom_tools/train_data/new_dataset_pose_pkls',
         help=''
     )
     parser.add_argument(
@@ -305,7 +306,7 @@ def extract_single_file(video_path, pose_model, out_root):
     tmp_dir.cleanup()
 
 def extract_directory(dir_path, pose_model, out_root):
-    video_ls = [os.path.join(dir_path, vpth) for vpth in os.listdir(dir_path) if vpth.endswith(('.mp4', '.avi'))]
+    video_ls = [os.path.join(dir_path, vpth) for vpth in sorted(os.listdir(dir_path)) if vpth.endswith(('.mp4', '.avi'))]
 
     for video_path in video_ls:
         extract_single_file(video_path, pose_model, out_root)
@@ -336,7 +337,7 @@ def main():
         if not os.path.exists(parent_dir):
             raise ValueError(f"경로가 존재하지 않습니다: {parent_dir}")
         
-        dir_ls = [os.path.join(parent_dir, d) for d in os.listdir(parent_dir) 
+        dir_ls = [os.path.join(parent_dir, d) for d in sorted(os.listdir(parent_dir))
                     if os.path.isdir(os.path.join(parent_dir, d))]
 
         for dir_path in tqdm(dir_ls):
