@@ -1,10 +1,10 @@
 0: throw
 1: protest
-2: raise
+2: stand
 3: robbery
 4: fight
 5: fall
-6: assault
-7: vandalism
+6: walk
+7: run
 8: trespass
 9: stabbing

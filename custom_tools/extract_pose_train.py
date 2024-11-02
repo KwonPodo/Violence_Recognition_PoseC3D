@@ -53,8 +53,8 @@ def parse_args():
     )
     parser.add_argument(
         '--out-root',
-        default='custom_tools/train_data/pose_pkls',
-        # default='custom_tools/train_data/new_dataset_pose_pkls',
+        # default='custom_tools/train_data/pose_pkls',
+        default='custom_tools/train_data/all_track_id_pose_pkls',
         help=''
     )
     parser.add_argument(
