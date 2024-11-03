@@ -11,6 +11,7 @@ from tqdm import tqdm
 
 from torch import nn
 import numpy as np
+import pandas as pd
 import mmengine
 from mmengine.structures import InstanceData
 from mmengine.utils import track_iter_progress
@@ -52,10 +53,20 @@ def parse_args():
         help='Video & Bbox Paths(s) to extract pose based on the selected mode.'
     )
     parser.add_argument(
-        '--out-root',
+        '--pose-pkl-out',
         # default='custom_tools/train_data/pose_pkls',
-        default='custom_tools/train_data/all_track_id_pose_pkls',
-        help=''
+        default='data/Nov_1_dataset/all/extracted_pose_pkls',
+        help='Directory where pose pkls are saved.'
+    )
+    parser.add_argument(
+        '--bytetrack-anns-dir',
+        default='data/Nov_1_dataset/all/bytetrack_output_anns',
+        help='Diretory where ByteTrack bbox annotations are saved.'
+    )
+    parser.add_argument(
+        '--track-id-label',
+        default='data/Nov_1_dataset/all/ann_per_track_id.csv',
+        help='Annotation for labels per track_id.'
     )
     parser.add_argument(
         '--pose-config',
@@ -70,6 +81,16 @@ def parse_args():
     )
     parser.add_argument(
         '--device', type=str, default='cuda:0', help='CPU/CUDA device option'
+    )
+    parser.add_argument(
+        '--merge',
+        action='store_true',
+        help='Merge extracted pose pkls into trainable pkl'
+    )
+    parser.add_argument(
+        '--merged-out-path',
+        default='data/Nov_1_dataset/all/trainable_pose.pkl',
+        help='Merged trainable pose pkl out path.'
     )
 
     args = parser.parse_args()
@@ -189,6 +210,7 @@ def read_track_ann(fname=None, related=None):
     with open(fname, 'r') as f:
         lines = f.readlines()
     
+    # Code for separate parsing - {vid_name}_related.txt and {vid_name}.txt
     for i, line in enumerate(lines):
         if related:
             lines[i] = list(map(float, line.split(',')))[:-1]
@@ -222,14 +244,39 @@ def read_track_ann(fname=None, related=None):
     
     return final_track_results
 
-def extract_single_file(video_path, pose_model, out_root):
+def get_track_id_label(args, video_id, track_id):
+    track_id_label_anns = pd.read_csv(args.track_id_label)
+
+    vid_id_ls = track_id_label_anns['vid_id'].to_list()
+    track_id_ls = [int(i) - 1 for i in track_id_label_anns['track_id'].to_list()]
+    label_id_ls = list(map(int, track_id_label_anns['class_id'].to_list()))
+    vid_track_pair = [f"{v}_{l}" for v, l in zip(vid_id_ls, track_id_ls)]
+
+    vid_track_label_pair = dict()
+    for v_t, l in zip(vid_track_pair, label_id_ls):
+        vid_track_label_pair[v_t] = l
+    
+    if f"{video_id}_{track_id}" in vid_track_pair:
+        is_concerned = True
+        label = vid_track_label_pair[f'{video_id}_{track_id}']
+    else:
+        is_concerned = False
+        label = None
+
+    return is_concerned, label
+
+def extract_single_file(video_path, pose_model, args):
+    video_id = os.path.basename(video_path)
+    ann_path = os.path.join(args.bytetrack_anns_dir, video_id)
+    pose_pkl_out = args.pose_pkl_out
+
     # Get Tracking Results
     related = None
-    if os.path.exists(video_path + '_related.txt'):
-        bytetrack_ann_path = video_path + '_related.txt'
+    if os.path.exists(ann_path + '_related.txt'):
+        bytetrack_ann_path = ann_path + '_related.txt'
         related = True
     else:
-        bytetrack_ann_path = video_path + '.txt'
+        bytetrack_ann_path = ann_path + '.txt'
         related = False
 
     vid_id = video_path.split('/')[-1].split('.')[0]
@@ -253,12 +300,19 @@ def extract_single_file(video_path, pose_model, out_root):
 
     track_pose_results = []
 
+    # Create args.pose_pkl_out directory if not exists
+    os.makedirs(pose_pkl_out, exist_ok=True)
+
     # Loop for each track_id
-    for i, track_val in enumerate(track_results):
-        # Get Pose Results
-        # List[np.ndarray(1,4)]
+    for track_id, track_val in enumerate(track_results):
+
+        is_concerned, label = get_track_id_label(args, video_id, track_id)
+        if not is_concerned:
+            continue
+
+        # Get Pose Results : List[np.ndarray(1,4)]
         try:
-            print(f'Performing Human Pose Estimation for track_id : {i} on each frame')
+            print(f'Performing Human Pose Estimation for track_id : {track_id} on each frame')
             pose_results, pose_datasample = pose_inference(
                 pose_model,
                 frame_paths,
@@ -290,9 +344,9 @@ def extract_single_file(video_path, pose_model, out_root):
             anno['img_shape'] = (h, w)
             anno['original_shape'] = (h, w)
             anno['total_frames'] = keypoints.shape[1]
-            anno['label'] = -1
+            anno['label'] = label
 
-            out_path = f'{os.path.join(out_root, vid_id)}_{i}.pkl'
+            out_path = f'{os.path.join(pose_pkl_out, vid_id)}_{track_id}.pkl'
 
             with open(f'{out_path}', 'wb') as handle:
                 pickle.dump(anno, 
@@ -305,11 +359,36 @@ def extract_single_file(video_path, pose_model, out_root):
         
     tmp_dir.cleanup()
 
-def extract_directory(dir_path, pose_model, out_root):
+def extract_directory(dir_path, pose_model, args):
     video_ls = [os.path.join(dir_path, vpth) for vpth in sorted(os.listdir(dir_path)) if vpth.endswith(('.mp4', '.avi'))]
 
     for video_path in video_ls:
-        extract_single_file(video_path, pose_model, out_root)
+        extract_single_file(video_path, pose_model, args)
+    
+def merge_pkls(args):
+    merged_out_path = args.merged_out_path
+    pose_pkl_out = args.pose_pkl_out
+    id_ls = [os.path.splitext(pkl)[0] for pkl in sorted(os.listdir(pose_pkl_out))]
+
+    train_ls = id_ls
+    valid_ls = id_ls
+
+    annotations = dict()
+    annotations['split'] = dict()
+    annotations['split']['train'] = train_ls
+    annotations['split']['valid'] = valid_ls
+
+    # Merge extracted pose pkls as 'annotations'
+    annotations['annotations'] = []
+    pkls_ls = [os.path.join(pose_pkl_out) 
+                for pkl in os.listdir(pose_pkl_out) if pkl.endswith('.pkl')]
+
+    for pkl in pkls_ls:
+        with open(pkl, 'rb') as f:
+            data = pickle.load(f)
+            annotations['annotations'].append(data)
+    
+    mmengine.dump(annotations, merged_out_path)
     
 
 def main():
@@ -321,14 +400,14 @@ def main():
         if len(args.paths) != 1:
             parser.error('File mode requires exactly one file path.')
 
-        extract_single_file(args.paths[0], pose_model, args.out_root)
+        extract_single_file(args.paths[0], pose_model, args)
 
     elif args.directory:
         if len(args.paths) != 1:
             parser.error('Single Directory mode requires exactly one directory path.')
 
         dir_path = args.paths[0]
-        extract_directory(dir_path, pose_model, args.out_root)
+        extract_directory(dir_path, pose_model, args)
 
     elif args.parent_dirs:
         print(args.paths)
@@ -343,12 +422,14 @@ def main():
         for dir_path in tqdm(dir_ls):
             print('#' * 50)
             print(f'Extracting from {dir_path}')
-            extract_directory(dir_path, pose_model, args.out_root)
+            extract_directory(dir_path, pose_model, args)
 
     elif args.multiple_dirs:
         for dir_path in args.paths:
-            extract_directory(dir_path, pose_model, args.out_root)
+            extract_directory(dir_path, pose_model, args)
 
+    if args.merge:
+        merge_pkls(args)
 
 
 if __name__ == '__main__':

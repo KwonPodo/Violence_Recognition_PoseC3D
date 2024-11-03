@@ -7,36 +7,19 @@ from tqdm import tqdm
 
 # data_train_pth = 'data/train'
 # data_valid_pth = 'data/valid'
-data_train_pth = 'data/long_dataset/train'
-data_valid_pth = 'data/long_dataset/valid'
+data_train_pth = 'custom_tools/train_data/selected_pose_pkls'
+data_valid_pth = 'custom_tools/train_data/selected_pose_pkls'
 
-pkls_pth = 'extracted_pkls_related'
-
-
-print(f'Train split from {data_train_pth}')
-cls_ls = os.listdir(data_train_pth)
-train_ls = []
-for cls in tqdm(cls_ls):
-    cls_vids = [vid for vid in os.listdir(osp.join(data_train_pth, cls)) \
-        if vid.endswith('.mp4') or vid.endswith('.avi')]
-    
-    stripped_cls_vids = [osp.splitext(vid_name)[0] for vid_name in cls_vids]
-    train_ls += stripped_cls_vids
+# pkls_pth = 'extracted_pkls_related'
+pkls_pth = 'custom_tools/train_data/selected_pose_pkls'
 
 
-print(f'Valid split from {data_valid_pth}')
-cls_ls = os.listdir(data_valid_pth)
-valid_ls = []
-for cls in tqdm(cls_ls):
-    cls_vids = [vid for vid in os.listdir(osp.join(data_valid_pth, cls)) \
-        if vid.endswith('.mp4') or vid.endswith('.avi')]
-
-    stripped_cls_vids = [osp.splitext(vid_name)[0] for vid_name in cls_vids]
-    valid_ls += stripped_cls_vids
+vid_ls = [osp.splitext(pkl)[0] for pkl in sorted(os.listdir(pkls_pth))]
+train_ls = vid_ls
+valid_ls = vid_ls
 
 
 annotations = dict()
-
 annotations['split'] = dict()
 annotations['split']['train'] = train_ls
 annotations['split']['valid'] = valid_ls
@@ -57,5 +40,5 @@ for pkl in pkls_ls:
         data = pickle.load(f)
         annotations['annotations'].append(data)
 
-out = './custom_tools/new_dataset_train.pkl'
+out = './custom_tools/train_data/new_dataset_train.pkl'
 mmengine.dump(annotations, out)
