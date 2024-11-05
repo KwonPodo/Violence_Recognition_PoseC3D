@@ -1,8 +1,10 @@
-0: trip
-1: throw
-2: chase
-3: fall
+0: throw
+1: protest
+2: stand
+3: robbery
 4: fight
-5: pick-pocket
-6: protest
-7: raise
+5: fall
+6: walk
+7: run
+8: trespass
+9: stabbing

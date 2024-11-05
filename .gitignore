@@ -128,6 +128,7 @@ work_dirs/*
 demo_videos/*
 custom_tools/*.txt
 custom_tools/*.pkl
+custom_tools/visualized
 
 # Pytorch
 *.pth

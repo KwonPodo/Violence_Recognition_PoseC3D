@@ -25,13 +25,15 @@ model = dict(
         average_clips='prob'))
 
 dataset_type = 'PoseDataset'
-# ann_file = 'data/skeleton/ntu60_2d.pkl'
-# ann_file = 'custom_tools/train_data/sub_sample_related.pkl'
-ann_file = 'custom_tools/train_data/new_dataset_train.pkl'
+train_ann_file = 'data/Nov_1_dataset/train_data/train.pkl'
+valid_ann_file = 'data/Nov_1_dataset/train_data/valid.pkl'
+# train_ann_file = 'data/Nov_1_dataset/all/train+val.pkl'
+# valid_ann_file = 'data/Nov_1_dataset/all/train+val.pkl'
+
 left_kp = [1, 3, 5, 7, 9, 11, 13, 15]
 right_kp = [2, 4, 6, 8, 10, 12, 14, 16]
 train_pipeline = [
-    dict(type='UniformSampleFrames', clip_len=48),
+    dict(type='UniformSampleFrames', clip_len=30),
     dict(type='PoseDecode'),
     dict(type='PoseCompact', hw_ratio=1., allow_imgpad=True),
     dict(type='Resize', scale=(-1, 64)),
@@ -92,29 +94,28 @@ train_dataloader = dict(
         times=1,
         dataset=dict(
             type=dataset_type,
-            ann_file=ann_file,
+            ann_file=train_ann_file,
             split='train',
             pipeline=train_pipeline)))
 val_dataloader = dict(
     batch_size=8,
-    num_workers=8,
+    num_workers=4,
     persistent_workers=True,
     sampler=dict(type='DefaultSampler', shuffle=False),
     dataset=dict(
         type=dataset_type,
-        ann_file=ann_file,
+        ann_file=valid_ann_file,
         split='valid',
-        # split='train',
         pipeline=val_pipeline,
         test_mode=True))
 test_dataloader = dict(
-    batch_size=1,
+    batch_size=4,
     num_workers=8,
     persistent_workers=True,
     sampler=dict(type='DefaultSampler', shuffle=False),
     dataset=dict(
         type=dataset_type,
-        ann_file=ann_file,
+        ann_file=valid_ann_file,
         split='valid',
         pipeline=test_pipeline,
         test_mode=True))
@@ -131,7 +132,7 @@ param_scheduler = [
     dict(
         type='CosineAnnealingLR',
         eta_min=0,
-        T_max=150,
+        T_max=300,
         by_epoch=True,
         convert_to_iter_based=True)
 ]

@@ -1,4 +1,4 @@
-_base_ = '../../_base_/default_runtime.py'
+_base_ = '../../configs/_base_/default_runtime.py'
 
 model = dict(
     type='Recognizer3D',
@@ -25,10 +25,9 @@ model = dict(
         average_clips='prob'))
 
 dataset_type = 'PoseDataset'
-# ann_file = 'data/skeleton/ntu60_2d.pkl'
-# ann_file = 'custom_tools/train_data/sub_sample_related.pkl'
-# ann_file = 'data/Nov_1_dataset/all/trainable_pose.pkl'
-ann_file = 'data/Nov_1_dataset/all/train_val_trainable.pkl'
+train_ann_file = 'pipeline_integration/train_data/train.pkl'
+valid_ann_file = 'pipeline_integration/train_data/valid.pkl'
+
 left_kp = [1, 3, 5, 7, 9, 11, 13, 15]
 right_kp = [2, 4, 6, 8, 10, 12, 14, 16]
 train_pipeline = [
@@ -84,7 +83,7 @@ test_pipeline = [
 ]
 
 train_dataloader = dict(
-    batch_size=4,
+    batch_size=8,
     num_workers=8,
     persistent_workers=True,
     sampler=dict(type='DefaultSampler', shuffle=True),
@@ -93,29 +92,28 @@ train_dataloader = dict(
         times=1,
         dataset=dict(
             type=dataset_type,
-            ann_file=ann_file,
+            ann_file=train_ann_file,
             split='train',
             pipeline=train_pipeline)))
 val_dataloader = dict(
+    batch_size=8,
+    num_workers=4,
+    persistent_workers=True,
+    sampler=dict(type='DefaultSampler', shuffle=False),
+    dataset=dict(
+        type=dataset_type,
+        ann_file=valid_ann_file,
+        split='valid',
+        pipeline=val_pipeline,
+        test_mode=True))
+test_dataloader = dict(
     batch_size=4,
     num_workers=8,
     persistent_workers=True,
     sampler=dict(type='DefaultSampler', shuffle=False),
     dataset=dict(
         type=dataset_type,
-        ann_file=ann_file,
-        split='valid',
-        # split='train',
-        pipeline=val_pipeline,
-        test_mode=True))
-test_dataloader = dict(
-    batch_size=1,
-    num_workers=4,
-    persistent_workers=True,
-    sampler=dict(type='DefaultSampler', shuffle=False),
-    dataset=dict(
-        type=dataset_type,
-        ann_file=ann_file,
+        ann_file=valid_ann_file,
         split='valid',
         pipeline=test_pipeline,
         test_mode=True))

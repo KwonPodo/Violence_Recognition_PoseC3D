@@ -64,7 +64,7 @@ class PoseDataset(BaseActionDataset):
 
         if self.split is not None:
             split, annos = data_list['split'], data_list['annotations']
-            identifier = 'filename' if 'filename' in annos[0] else 'frame_dir'
+            # identifier = 'filename' if 'filename' in annos[0] else 'frame_dir'
             split = set(split[self.split])
             data_list = annos
             # data_list = [x for x in annos if x[identifier] in split]

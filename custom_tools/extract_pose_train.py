@@ -55,17 +55,20 @@ def parse_args():
     parser.add_argument(
         '--pose-pkl-out',
         # default='custom_tools/train_data/pose_pkls',
-        default='data/Nov_1_dataset/all/extracted_pose_pkls',
+        # default='data/Nov_1_dataset/all/extracted_pose_pkls',
+        default='data/Nov_1_dataset/all/test_set/extracted_pose_pkls',
         help='Directory where pose pkls are saved.'
     )
     parser.add_argument(
         '--bytetrack-anns-dir',
-        default='data/Nov_1_dataset/all/bytetrack_output_anns',
+        # default='data/Nov_1_dataset/all/bytetrack_output_anns',
+        default='data/Nov_1_dataset/test_set2/bytetrack_output_anns',
         help='Diretory where ByteTrack bbox annotations are saved.'
     )
     parser.add_argument(
         '--track-id-label',
-        default='data/Nov_1_dataset/all/ann_per_track_id.csv',
+        # default='data/Nov_1_dataset/all/ann_per_track_id.csv',
+        default='data/Nov_1_dataset/all/test_set/test_set.csv',
         help='Annotation for labels per track_id.'
     )
     parser.add_argument(
@@ -212,6 +215,9 @@ def read_track_ann(fname=None, related=None):
     
     # Code for separate parsing - {vid_name}_related.txt and {vid_name}.txt
     for i, line in enumerate(lines):
+        if line in ['\n', ""]:
+            continue
+
         if related:
             lines[i] = list(map(float, line.split(',')))[:-1]
         else:
@@ -256,9 +262,11 @@ def get_track_id_label(args, video_id, track_id):
     for v_t, l in zip(vid_track_pair, label_id_ls):
         vid_track_label_pair[v_t] = l
     
-    if f"{video_id}_{track_id}" in vid_track_pair:
+    interested = f'{video_id}_{track_id}'
+
+    if interested in vid_track_pair:
         is_concerned = True
-        label = vid_track_label_pair[f'{video_id}_{track_id}']
+        label = vid_track_label_pair[interested]
     else:
         is_concerned = False
         label = None
@@ -321,9 +329,9 @@ def extract_single_file(video_path, pose_model, args):
             track_pose_results.append(pose_results)
 
             # align the num_person among frames
-            print(type(pose_results))
-            print(len(pose_results))
-            print(pose_results[0]['keypoints'].shape)
+            # print(type(pose_results))
+            # print(len(pose_results))
+            # print(pose_results[0]['keypoints'].shape)
 
             num_persons = max([pose_results[0]['keypoints'].shape[0] for pose in pose_results])
             num_points = pose_results[0]['keypoints'].shape[1]
@@ -380,8 +388,9 @@ def merge_pkls(args):
 
     # Merge extracted pose pkls as 'annotations'
     annotations['annotations'] = []
-    pkls_ls = [os.path.join(pose_pkl_out) 
-                for pkl in os.listdir(pose_pkl_out) if pkl.endswith('.pkl')]
+    pkls_ls = [os.path.join(pose_pkl_out, pkl)
+                for pkl in sorted(os.listdir(pose_pkl_out)) if pkl.endswith('.pkl')]
+    
 
     for pkl in pkls_ls:
         with open(pkl, 'rb') as f:
@@ -410,7 +419,6 @@ def main():
         extract_directory(dir_path, pose_model, args)
 
     elif args.parent_dirs:
-        print(args.paths)
         parent_dir = args.paths[0]
 
         if not os.path.exists(parent_dir):

@@ -33,23 +33,22 @@ def parse_args():
     )
     parser.add_argument(
         '--action-config',
-        default='pipeline_build/demo_configs/violence_custom_slowonly_r50_8xb16-u48-240e_ntu60-xsub-keypoint.py',
+        default='pipeline_integration/demo_configs/custom_violence_keypoint_epoch300_batch8.py',
         help='skeleton-based action recognition config file path'
     )
     parser.add_argument(
         '--action-checkpoint',
-        # default='pipeline_build/weights/epoch_72.pth',
-        default='pipeline_build/weights/best_acc_top1_epoch_62.pth',
+        default='pipeline_integration/weights/best_acc_top1_epoch_193.pth',
         help='skeleton-based action recognition checkpoint file/url'
     )
     parser.add_argument(
         '--pose-file-path',
-        default='pipeline_build/sample/long_subset/1_071_1_04.pkl',
+        default='pipeline_integration/sample/long_subset/1_071_1_04.pkl',
         help='Path of saved pose data'
     )
     parser.add_argument(
         '--action-save-dir',
-        default='pipeline_build/sample/results',
+        default='pipeline_integration/sample/results',
         help='Directory path to save action results'
     )
     parser.add_argument(
@@ -342,6 +341,7 @@ def main():
     print(f'Number of person detected : {len(pose_results)}')
 
     track_id = 0
+    result = []
     for track_id_pose in tqdm(pose_results):
         print(f'\n\nProcessing track_id : {track_id}')
         print(f'Preprocessing pose data of {track_id} into sliding window clips...')
@@ -373,6 +373,7 @@ def main():
             prog_bar.update()
         end_time = time.time()
         inference_time = end_time - start_time
+        result.append(track_id_action_result)
 
         print(f'\nInference time : {inference_time:.2f}s\tFPS : {len(clip_frame_inds) * args.clip_len / inference_time}')
     
@@ -386,7 +387,8 @@ def main():
     vid_id = args.pose_file_path.split('/')[-1].split('.')[0]
     save_pth = os.path.join(args.action_save_dir, f'action_{vid_id}.pkl')
     with open(save_pth, 'wb') as handle:
-        pickle.dump(track_id_action_result, handle)
+        pickle.dump(result, handle)
+
 
 
 if __name__ == '__main__':

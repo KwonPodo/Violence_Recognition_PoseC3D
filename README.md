@@ -1,13 +1,14 @@
 # Environment Setting
 
 ### Conda Environment Settings
+
 1. `python.__version__ == 3.9`
 ```bash
 conda create -n ${ENV_NAME} python=3.9
 ```
 2. CUDA, Pytorch Version
 
-해당 코드는 CUDA 11.8, PyTorch 2.0.0 버전으로 실험되었습니다.
+해당 코드는 CUDA 11.8, PyTorch 2.0.0 버전으로 실험되었다.
 ```bash
 pip install torch==2.0.0+cu118 torchvision==0.15.1+cu118 torchaudio==2.0.1+cu118 --index-url https://download.pytorch.org/whl/cu118
 ```
@@ -28,6 +29,8 @@ mim install "mmpose==1.3.2"
 pip install -e .
 ```
 
+이렇게 구성하여 export한 conda environment yaml파일은 `conda_environment.yaml`에 저장되어 있다.
+
 # Train & Test
 ## Train
 
@@ -37,7 +40,7 @@ python tools/train.py ${CONFIG_FILE} [optional arguments]
 
 _Example_
 ```bash
-python tools/train.py configs/skeleton/posec3d/violence_custom_slowonly_r50_8xb16-u48-240e_ntu60-xsub-keypoint.py
+python tools/train.py pipeline_integration/demo_configs/custom_violence_keypoint_epoch300_batch8.py
 ```
 
 ## Test
@@ -48,7 +51,7 @@ python tools/test.py ${CONFIG_FILE} ${CHECKPOINT_FILE} [optional arguments]
 
 _Example_
 ```bash
-python tools/test.py configs/skeleton/posec3d/violence_custom_slowonly_r50_8xb16-u48-240e_ntu60-xsub-keypoint.py pipeline_integration/weights/best_acc_top1_epoch_62.pth
+python tools/test.pypipeline_integration/demo_configs/custom_violence_keypoint_epoch300_batch8.py pipeline_integration/weights/best_acc_top1_epoch_264.pth
 ```
 
 
@@ -63,13 +66,15 @@ Top-down Pose Estimation의 출력 Heatmap들을 각 join 별로 temporarily sta
 
 > In experiments, we find that coordinate-triplets (x,y,c) help save the majority of storage space at the cost of little performance drop.
 
-이에 따라 현재 작성한 추론 코드도 Pipeline을 다음과 같이 구축한다.
+이에 따라 현재 작성한 추론 코드도 Pipeline을 다음과 같이 구축하며, COCO 기반 Keypoint Coordinate를 지니고 있다고 가정하고 구현되었다.
 
 ![Pipeline](imgs/image.png)
 
 ### Multi-person Inference
 Top-down based HRNet을 기반으로 single person에 대해 action inference를 하기에 사람이 많아질 수록 linear하게 연산량이 증가할 수 있다.
 
+### Model Configfile
+추후 Class 갯수 변경 등, 추가적인 학습데이터 재구성이 있을 수 있어 config 파일 및 가중치가 변경될 수 있다.
 
 ## `pipeline_integration/extract_pose.py`
 #### Pose Extraction Example  
@@ -160,19 +165,26 @@ extract_pose.py로 뽑은 pkl 파일들을 input으로 하여 sliding window fas
 - 'pred_score': 출력된 각 action class 별 확률
 - 'frame_index': 추론된 frame index들의 배열
 
-pkl 파일에 저장되는 데이터의 형태는 다음과 같으며, 배열의 길이는 inference하는 clip의 갯수와 같다.
+pkl 파일에 저장되는 데이터의 형태는 다음과 같다. `List[List[dict]]`
+
+`len(List[List[dict]])==num_person`
+
+`len(List[dict])` 는 inference하는 clip의 갯수이다.
+
 ```python
-[
-    {
-        'pred_score': array([
-            0.00093905, 0.00426766, 0.28390622, 0.01333115, 0.00408716,
-            0.04153658, 0.64740133, 0.00453098], dtype=float32), 
-        'pred_label': array([6]), 
-        'frame_index': [
-            0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47
-        ]
-    },
-    ...,
+[ 
+    [
+        {
+            'pred_score': array([
+                0.00093905, 0.00426766, 0.28390622, 0.01333115, 0.00408716,
+                0.04153658, 0.64740133, 0.00453098], dtype=float32), 
+            'pred_label': array([6]), 
+            'frame_index': [
+                0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47
+            ]
+        },
+        ...,
+    ]
 ]
 ```
 
