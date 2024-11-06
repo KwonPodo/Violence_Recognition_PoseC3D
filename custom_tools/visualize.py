@@ -5,6 +5,7 @@ import tempfile
 import warnings
 import time
 import os
+from pprint import pprint
 
 import cv2
 import mmcv
@@ -184,9 +185,9 @@ def parse_args():
         help='skeleton-based action recognition config file path')
     parser.add_argument(
         '--skeleton-checkpoint',
-        # default='work_dirs/Nov_3/custom_violence_keypoint_epoch300_batch8/best_acc_top1_epoch_264.pth',
+        default='work_dirs/Nov_3/custom_violence_keypoint_epoch300_batch8/best_acc_top1_epoch_264.pth',
         # default='work_dirs/custom_violence_keypoint_epoch300_batch8/best_acc_top1_epoch_175.pth',
-        default='work_dirs/train+val_epoch_300_batch8/best_acc_top1_epoch_193.pth',
+        # default='work_dirs/train+val_epoch_300_batch8/best_acc_top1_epoch_193.pth',
         help='skeleton-based action recognition checkpoint file/url')
     parser.add_argument(
         '--det-score-thr',
@@ -200,7 +201,7 @@ def parse_args():
         help='the threshold of action prediction score')
     parser.add_argument(
         '--video',
-        default='data/Nov_1_dataset/test_set3/ori/IMG_6026.mp4',
+        default='custom_tools/sample/etri_sample/241101_0_out_45view_throw_walk0.mp4',
         help='video file/url')
     parser.add_argument(
         '--label-map-stdet',
@@ -424,11 +425,18 @@ def skeleton_based_stdet(args, label_map, human_detections, pose_results,
             output = inference_recognizer(skeleton_stdet_model, fake_anno)
             # for multi-label recognition
             score = output.pred_score.tolist()
+            print()
+            print('#'*20)
+            print(f'timestamps : {timestamps}')
+            print(f'timestamp : {timestamp}')
+            print(f'score : {score}')
             for k in range(len(score)):  # 81
                 if k not in label_map:
                     continue
                 if score[k] > args.action_score_thr:
                     skeleton_prediction[i].append((label_map[k], score[k]))
+            print(f'skeleton_prediction : {skeleton_prediction}')
+            print()
 
         skeleton_predictions.append(skeleton_prediction)
         prog_bar.update()
@@ -494,6 +502,13 @@ def main():
         det[:, 1:4:2] *= h_ratio
         human_detections[i] = torch.from_numpy(det[:, :4]).to(args.device)
 
+    # print(len(timestamps), len(stdet_preds))
+    print()
+    print(len(timestamps))
+    pprint(timestamps)
+    print()
+    print(len(stdet_preds))
+    pprint(stdet_preds)
 
     stdet_results = []
     for timestamp, prediction in zip(timestamps, stdet_preds):

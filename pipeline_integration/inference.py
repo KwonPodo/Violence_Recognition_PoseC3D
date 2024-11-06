@@ -63,6 +63,7 @@ def parse_args():
     )
     parser.add_argument(
         '--predict-step-size',
+        type=int,
         default=12,
         help='step size of the sliding window'
     )
@@ -362,7 +363,10 @@ def main():
 
         start_time = time.time()
         for pose_heatmaps, frame_inds in list(zip(clip_pose_heatmaps, clip_frame_inds)):
+            inf_st = time.time()
             action_result = action_inference(action_model, pose_heatmaps)
+            inf_et = time.time()
+            print(f'inference time for action_inference : {inf_et - inf_st:.2f}s, {(inf_et - inf_st)*1000:.2f}ms')
             track_id_action_result.append(
                 {
                     'pred_score': action_result.pred_score.cpu().numpy(),
@@ -375,7 +379,7 @@ def main():
         inference_time = end_time - start_time
         result.append(track_id_action_result)
 
-        print(f'\nInference time : {inference_time:.2f}s\tFPS : {len(clip_frame_inds) * args.clip_len / inference_time}')
+        print(f'\nInference time : {round(inference_time, 2)}s\tFPS : {len(clip_frame_inds) * args.clip_len / inference_time}')
     
 
     '''

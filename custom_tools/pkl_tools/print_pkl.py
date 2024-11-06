@@ -44,15 +44,24 @@ def print_pickle_content(file_path, max_depth=None):
     try:
         data = read_pickle_file(file_path)
         print(f"\n[{file_path}] 파일의 내용:")
-        pprint(data, depth=max_depth)
+        id0 = data[0]
+        id0_frame0 = id0[0]
+        print(id0_frame0)
+        print()
+        print(len(data))
+        print(len(id0))
+        print(id0_frame0['keypoints'].shape)
+        print(id0_frame0['keypoint_scores'].shape)
+        # pprint(data, depth=max_depth)
     except Exception as e:
         print(f"오류 발생: {str(e)}")
 
 # 사용 예시
 if __name__ == "__main__":
     # 단순 사용
-    file_path = "example.pkl"
+    # file_path = "pipeline_integration/sample/long_subset/1_071_1_04.pkl"
+    file_path = "custom_tools/sample/etri_sample/241101_0_out_45view_throw_walk0.pkl"
     print_pickle_content(file_path)
     
     # 출력 깊이 제한하여 사용
-    print_pickle_content(file_path, max_depth=2)
+    # print_pickle_content(file_path, max_depth=2)

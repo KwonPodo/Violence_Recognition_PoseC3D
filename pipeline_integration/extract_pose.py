@@ -231,7 +231,7 @@ def main():
         
 
     vid_id = video_path.split('/')[-1].split('.')[0]
-    with open(f'pipeline_build/sample/long_subset/{vid_id}.pkl', 'wb') as handle:
+    with open(f'pipeline_integration/sample/long_subset/{vid_id}.pkl', 'wb') as handle:
         pickle.dump(track_pose_results, 
                     handle, protocol=pickle.HIGHEST_PROTOCOL)
 
