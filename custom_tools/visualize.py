@@ -157,7 +157,8 @@ def parse_args():
         '--skeleton-stdet-checkpoint',
         # default=('work_dirs/Nov_3/custom_violence_keypoint_epoch300_batch8/best_acc_top1_epoch_264.pth'),
         # default=('work_dirs/train+val_uniform_cliplen30_epoch300_batch8/best_acc_top1_epoch_204.pth'),
-        default=('work_dirs/train+val_epoch_300_batch8/best_acc_top1_epoch_193.pth'),
+        # default=('work_dirs/train+val_epoch_300_batch8/best_acc_top1_epoch_193.pth'),
+        default=('work_dirs/uniform_cliplen48_epoch300_batch8/best_acc_top1_epoch_236.pth'),
         help='skeleton-based spatio temporal detection checkpoint file/url')
     parser.add_argument(
         '--det-config',
@@ -205,7 +206,7 @@ def parse_args():
         help='video file/url')
     parser.add_argument(
         '--label-map-stdet',
-        default='custom_tools/train_data/label_map.txt',
+        default='data/Final_dataset/label_map.txt',
         help='label map file for spatio-temporal action detection')
     parser.add_argument(
         '--label-map',
@@ -216,7 +217,7 @@ def parse_args():
     parser.add_argument(
         '--out-dir',
         # default='custom_tools/visualized',
-        default='custom_tools/visualized/1105_sample',
+        default='custom_tools/visualized/new_dataset',
         help='output dirname')
     parser.add_argument(
         '--predict-stepsize',
@@ -425,11 +426,11 @@ def skeleton_based_stdet(args, label_map, human_detections, pose_results,
             output = inference_recognizer(skeleton_stdet_model, fake_anno)
             # for multi-label recognition
             score = output.pred_score.tolist()
-            print()
-            print('#'*20)
-            print(f'timestamps : {timestamps}')
-            print(f'timestamp : {timestamp}')
-            print(f'score : {score}')
+            # print()
+            # print('#'*20)
+            # print(f'timestamps : {timestamps}')
+            # print(f'timestamp : {timestamp}')
+            # print(f'score : {score}')
             for k in range(len(score)):  # 81
                 if k not in label_map:
                     continue
@@ -503,12 +504,12 @@ def main():
         human_detections[i] = torch.from_numpy(det[:, :4]).to(args.device)
 
     # print(len(timestamps), len(stdet_preds))
-    print()
-    print(len(timestamps))
-    pprint(timestamps)
-    print()
-    print(len(stdet_preds))
-    pprint(stdet_preds)
+    # print()
+    # print(len(timestamps))
+    # pprint(timestamps)
+    # print()
+    # print(len(stdet_preds))
+    # pprint(stdet_preds)
 
     stdet_results = []
     for timestamp, prediction in zip(timestamps, stdet_preds):

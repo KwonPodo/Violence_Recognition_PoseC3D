@@ -4,6 +4,7 @@ import pickle
 import os
 from typing import List, Optional, Tuple
 from tqdm import tqdm
+from collections import deque
 from pprint import pprint
 
 import torch
@@ -24,7 +25,88 @@ from mmengine.utils import track_iter_progress
 from mmaction.apis import init_recognizer
 from mmaction.structures import ActionDataSample
 from mmaction.utils import frame_extract
-from configs._base_.datasets.coco import dataset_info as coco
+
+class ActionVoter:
+    def __init__(
+        self,
+        buffer_size : int = 3,
+        min_votes : int = 3,
+        method : str ='hard'
+    ):
+    
+        self.buffer_size = buffer_size
+        self.method = method
+        self.min_votes = min_votes
+
+        self.pred_history = deque(maxlen=buffer_size)
+        self.score_history = deque(maxlen=buffer_size)
+
+        self.last_pred = None
+    
+    def vote(self, pred_info:dict) -> dict:
+        if self.method == 'off':
+            return pred_info
+        
+        current_pred = self._to_numpy(pred_info.pred_label[0])
+        current_scores = self._to_numpy(pred_info.pred_score)
+
+        self.pred_history.append(current_pred)
+        self.score_history.append(current_scores)
+
+        if len(self.pred_history) < self.min_votes:
+            return pred_info
+        
+        if self.method == 'hard':
+            voted_label = self._hard_vote()
+        elif self.method == 'soft':
+            voted_label = self._soft_vote()
+        else:
+            raise ValueError(f'Unknown voting method is given : {self.voting_method}')
+        
+        result = cp.deepcopy(pred_info)
+        
+        if isinstance(pred_info.pred_label, torch.Tensor):
+            device = pred_info.pred_label.device
+            voted_label = torch.tensor([voted_label], device=device)
+        else:
+            voted_label = np.array([voted_label])
+
+        result.pred_label = voted_label
+
+        self.last_pred = voted_label
+
+        return result
+    
+    def _to_numpy(self, data):
+        if isinstance(data, torch.Tensor):
+            return data.cpu().numpy()
+        
+        return data
+
+    def _hard_vote(self) -> int:
+        predictions = list(self.pred_history)
+        unique_labels, counts = np.unique(predictions, return_counts=True)
+
+        return unique_labels[np.argmax(counts)]
+    
+    def _soft_vote(self) -> int:
+        print()
+        print(self.score_history)
+        print(list(self.score_history))
+        print(np.mean(list(self.score_history), axis=0))
+        print()
+
+        avg_scores = np.mean(list(self.score_history), axis=0)
+
+        return np.argmax(avg_scores)
+
+    def set_method(self, method:str):
+        valid_methods = {'soft', 'hard', 'off'}
+        if method not in valid_methods:
+            raise ValueError(f'Method must be one of {valid_methods}')
+
+        self.method = method
+        
 
 def parse_args():
     parser = argparse.ArgumentParser(description='Violence Action Recognition Demo')
@@ -73,6 +155,16 @@ def parse_args():
         '--predict-step-size',
         default=12,
         help='step size of the sliding window'
+    )
+    parser.add_argument(
+        '--use-vote',
+        action='store_true',
+        help='flag for using vote'
+    )
+    parser.add_argument(
+        '--vote-method',
+        type=str,
+        default='hard'
     )
     parser.add_argument(
         '--visualize',
@@ -560,6 +652,7 @@ def visualize(pose_results, timestamps, predictions, args):
     tmp_dir.cleanup()
 
 
+
 def main():
     args = parse_args()
 
@@ -572,6 +665,12 @@ def main():
 
     print(f'Total frame : {len(pose_results[0])}')
     print(f'Number of person detected : {len(pose_results)}')
+
+    action_voter = ActionVoter(
+        buffer_size=3,
+        min_votes=3,
+        method=args.vote_method
+    )
 
     track_id = 0
     result = []
@@ -596,14 +695,26 @@ def main():
         start_time = time.time()
         for pose_heatmaps, frame_inds in list(zip(clip_pose_heatmaps, clip_frame_inds)):
             action_result = action_inference(action_model, pose_heatmaps)
+            voted_action_result = action_voter.vote(action_result)
+
             track_id_action_result.append(
                 {
-                    'pred_score': action_result.pred_score.cpu().numpy(),
-                    'pred_label': action_result.pred_label.cpu().numpy(),
+                    'pred_score': voted_action_result.pred_score.cpu().numpy(),
+                    'pred_label': voted_action_result.pred_label.cpu().numpy(),
                     'frame_index': frame_inds
                 }
             )
+
+            # track_id_action_result.append(
+            #     {
+            #         'pred_score': action_result.pred_score.cpu().numpy(),
+            #         'pred_label': action_result.pred_label.cpu().numpy(),
+            #         'frame_index': frame_inds
+            #     }
+            # )
+
             prog_bar.update()
+        
         end_time = time.time()
         inference_time = end_time - start_time
         result.append(track_id_action_result)
@@ -622,12 +733,13 @@ def main():
     with open(save_pth, 'wb') as handle:
         pickle.dump(result, handle)
 
+    print(result)
     if args.visualize:
         timestamps, predictions = postprocess_clip_results(result, args)
         print(timestamps)
         print(predictions)
 
-        # visualize(pose_results, timestamps, predictions, args)
+        visualize(pose_results, timestamps, predictions, args)
 
 
 if __name__ == '__main__':

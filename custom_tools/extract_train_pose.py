@@ -54,21 +54,17 @@ def parse_args():
     )
     parser.add_argument(
         '--pose-pkl-out',
-        # default='custom_tools/train_data/pose_pkls',
-        # default='data/Nov_1_dataset/all/extracted_pose_pkls',
-        default='data/Nov_1_dataset/all/test_set/extracted_pose_pkls',
+        default='data/Final_dataset/extracted_pose_pkls',
         help='Directory where pose pkls are saved.'
     )
     parser.add_argument(
         '--bytetrack-anns-dir',
-        # default='data/Nov_1_dataset/all/bytetrack_output_anns',
-        default='data/Nov_1_dataset/test_set2/bytetrack_output_anns',
+        default='data/Final_dataset/bytetrack_output_anns',
         help='Diretory where ByteTrack bbox annotations are saved.'
     )
     parser.add_argument(
         '--track-id-label',
-        # default='data/Nov_1_dataset/all/ann_per_track_id.csv',
-        default='data/Nov_1_dataset/all/test_set/test_set.csv',
+        default='data/Final_dataset/ann_per_track_id - new_dataset.csv',
         help='Annotation for labels per track_id.'
     )
     parser.add_argument(
@@ -92,7 +88,7 @@ def parse_args():
     )
     parser.add_argument(
         '--merged-out-path',
-        default='data/Nov_1_dataset/all/trainable_pose.pkl',
+        default='data/Final_dataset/train.pkl',
         help='Merged trainable pose pkl out path.'
     )
 
