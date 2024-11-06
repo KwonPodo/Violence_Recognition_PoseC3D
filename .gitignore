@@ -129,6 +129,7 @@ demo_videos/*
 custom_tools/*.txt
 custom_tools/*.pkl
 custom_tools/visualized
+custom_tools/sample
 
 # Pytorch
 *.pth
