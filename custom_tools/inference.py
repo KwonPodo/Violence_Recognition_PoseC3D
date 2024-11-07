@@ -44,6 +44,7 @@ class ActionVoter:
         self.last_pred = None
     
     def vote(self, pred_info:dict) -> dict:
+
         if self.method == 'off':
             return pred_info
         
@@ -90,12 +91,6 @@ class ActionVoter:
         return unique_labels[np.argmax(counts)]
     
     def _soft_vote(self) -> int:
-        print()
-        print(self.score_history)
-        print(list(self.score_history))
-        print(np.mean(list(self.score_history), axis=0))
-        print()
-
         avg_scores = np.mean(list(self.score_history), axis=0)
 
         return np.argmax(avg_scores)
@@ -387,17 +382,25 @@ def action_inference(model: nn.Module,
         predicted scores are saved at ``result.pred_score``.
     """
 
+    print(type(pose_result['inputs']))
+    print(len(pose_result['inputs']))
+    pose_result["inputs"] = [np.expand_dims(pos[0], axis=0) for pos in pose_result['inputs']]
+    print(pose_result['inputs'][0].shape)
+    infer_start = time.time()
+    print(type(model))
     with torch.no_grad():
         result = model.test_step(pose_result)[0]
+    infer_end = time.time()
+
+    diff = infer_end - infer_start
     
-    return result
+    
+    return result, diff
 
 def postprocess_clip_results(result, args):
     label_map = load_label_map(args.label_map)
     num_person = len(result)
     timestamps = [clip_info['frame_index'][0] for clip_info in result[0]]
-    print(timestamps)
-    print(len(timestamps))
 
     clip_zip = list(zip(*result))
 
@@ -405,13 +408,17 @@ def postprocess_clip_results(result, args):
     predictions = []
     for clip in clip_zip:
         prediction = []
+        loop_for_once = True
         for i, person_clip_info in enumerate(clip):
             prediction.append([])
             timestamp = person_clip_info['frame_index'][0]
             pred_label_id = person_clip_info['pred_label'][0]
             pred_label_str = label_map[pred_label_id]
             pred_label_score = person_clip_info['pred_score'][pred_label_id]
-            timestamps.append(timestamp)
+
+            if loop_for_once:
+                timestamps.append(timestamp)
+                loop_for_once = False
             prediction[i].append((pred_label_str, pred_label_score))
 
         predictions.append(prediction)
@@ -630,22 +637,92 @@ def visualize(pose_results, timestamps, predictions, args):
 
         return frame_
     
+    def get_head_pos(keypoints):
+        head_points = []
+        head_y = float('inf')
+        center_x = 0
+        valid_points = 0
+
+        for idx in range(5):
+            head_points.append(keypoints[idx])
+            head_y = min(head_y, keypoints[idx][1])
+            center_x += keypoints[idx][0]
+            valid_points += 1
+    
+        margin = 50
+        center_x /= valid_points
+
+        return int(center_x), int(head_y - margin)
+
+
+    def draw_action(frame, keypoints, action_info):
+        """Draw action result"""
+        label_str, prob = action_info
+        height, width = frame.shape[:-1]
+        center_x, head_top_y = get_head_pos(keypoints)
+        # 텍스트 크기 계산
+        text_size = cv2.getTextSize(label_str, cv2.FONT_HERSHEY_SIMPLEX, 0.7, 2)[0]
+        
+        # 텍스트가 프레임을 벗어나지 않도록 조정
+        text_x = min(max(center_x - text_size[0]//2, 10), width - text_size[0] - 10)
+        text_y = max(head_top_y, text_size[1] + 10)
+        
+        # 텍스트 배경 그리기
+        bg_pt1 = (text_x - 5, text_y - text_size[1] - 5)
+        bg_pt2 = (text_x + text_size[0] + 5, text_y + 5)
+        cv2.rectangle(frame, bg_pt1, bg_pt2, (0, 0, 0), -1)
+        
+        # 텍스트 그리기
+        cv2.putText(frame, label_str, 
+                    (text_x, text_y),
+                    cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 255), 2)
+    
 
     vis_frames = []
     for fpth in frame_paths:
         frame = cv2.imread(fpth)[...,::-1]
         frame_ = cp.deepcopy(frame)
         vis_frames.append(frame_)
+    
 
-    print(len(pose_results))
+    def get_action_label(current_frame, timestamps, action_label, p_idx):
+        if current_frame < timestamps[0]:
+            return -1
+            
+        left, right = 0, len(timestamps) - 1
+        
+        while left < right:
+            mid = (left + right + 1) // 2
+            if timestamps[mid] <= current_frame:
+                left = mid
+            else:
+                right = mid - 1
+                
+        timestamp_idx = left
+        print()
+        print(timestamp_idx)
+        print(p_idx)
+        print(action_label[timestamp_idx])
+        print(action_label[timestamp_idx][p_idx])
+        matching_label = action_label[timestamp_idx][p_idx]
+
+        return matching_label
+
+    p_idx = 0
     for single_person_pose_result in pose_results:
         i = 0
+        frame_cnt = 0
         for frame2vis, pose_res in zip(vis_frames, single_person_pose_result):
             keypoints = pose_res['keypoints'][0]
             keypoint_scores = pose_res['keypoint_scores'][0]
+            action_info = get_action_label(frame_cnt, timestamps, predictions, p_idx)
             vis_frame = draw_skeleton(frame2vis, keypoints, keypoint_scores, skeleton_info, keypoint_info)
+            vis_frame = draw_action(vis_frame, keypoints, action_info)
             vis_frames[i] = vis_frame
+            frame_cnt += 1
+        p_idx += 1
     
+    # video = mpy.ImageSequenceClip(res, fps=fps)
     video = mpy.ImageSequenceClip(vis_frames, fps=fps)
     video.write_videofile(args.video_out)
 
@@ -694,8 +771,12 @@ def main():
 
         start_time = time.time()
         for pose_heatmaps, frame_inds in list(zip(clip_pose_heatmaps, clip_frame_inds)):
-            action_result = action_inference(action_model, pose_heatmaps)
+            print(f'pose_heatmaps : {type(pose_heatmaps["inputs"][0])}')
+            print(f'{pose_heatmaps["inputs"][0].shape}')
+            action_result, diff = action_inference(action_model, pose_heatmaps)
+            print(f'diff : {diff:.2f}')
             voted_action_result = action_voter.vote(action_result)
+            exit()
 
             track_id_action_result.append(
                 {
@@ -733,9 +814,9 @@ def main():
     with open(save_pth, 'wb') as handle:
         pickle.dump(result, handle)
 
-    print(result)
     if args.visualize:
         timestamps, predictions = postprocess_clip_results(result, args)
+
         print(timestamps)
         print(predictions)
 

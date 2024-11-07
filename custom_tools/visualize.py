@@ -158,7 +158,8 @@ def parse_args():
         # default=('work_dirs/Nov_3/custom_violence_keypoint_epoch300_batch8/best_acc_top1_epoch_264.pth'),
         # default=('work_dirs/train+val_uniform_cliplen30_epoch300_batch8/best_acc_top1_epoch_204.pth'),
         # default=('work_dirs/train+val_epoch_300_batch8/best_acc_top1_epoch_193.pth'),
-        default=('work_dirs/uniform_cliplen48_epoch300_batch8/best_acc_top1_epoch_236.pth'),
+        default=('work_dirs/uniform_cliplen48_epoch300_batch8/best_acc_top1_epoch_63.pth'),
+        # default=('work_dirs/cls5_cliplen48_epoch300_batch4/epoch_300.pth'),
         help='skeleton-based spatio temporal detection checkpoint file/url')
     parser.add_argument(
         '--det-config',
@@ -202,7 +203,8 @@ def parse_args():
         help='the threshold of action prediction score')
     parser.add_argument(
         '--video',
-        default='custom_tools/sample/etri_sample/241101_0_out_45view_throw_walk0.mp4',
+        # default='custom_tools/sample/etri_sample/241101_0_out_45view_throw_walk0.mp4',
+        default='data/Nov_1_dataset/ETRI_Dataset_output/241101_0_out_45view.mp4',
         help='video file/url')
     parser.add_argument(
         '--label-map-stdet',
@@ -210,7 +212,7 @@ def parse_args():
         help='label map file for spatio-temporal action detection')
     parser.add_argument(
         '--label-map',
-        default='custom_tools/train_data/label_map.txt',
+        default='data/Final_dataset/label_map.txt',
         help='label map file for action recognition')
     parser.add_argument(
         '--device', type=str, default='cuda:0', help='CPU/CUDA device option')
