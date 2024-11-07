@@ -63,12 +63,17 @@ val_pipeline = [
     dict(type='PackActionInputs')
 ]
 test_pipeline = [
+    # mmaction/datasets/transforms/pose_transforms.py
     dict(
         type='UniformSampleFrames', clip_len=48, num_clips=10, test_mode=True),
     dict(type='PoseDecode'),
     dict(type='PoseCompact', hw_ratio=1., allow_imgpad=True),
+
+    # mmaction/datasets/transforms/processing.py
     dict(type='Resize', scale=(-1, 64)),
     dict(type='CenterCrop', crop_size=64),
+
+    # mmaction/datasets/transforms/pose_transforms.py
     dict(
         type='GeneratePoseTarget',
         sigma=0.6,
@@ -78,6 +83,8 @@ test_pipeline = [
         double=True,
         left_kp=left_kp,
         right_kp=right_kp),
+
+    # mmaction/datasets/transforms/formatting.py
     dict(type='FormatShape', input_format='NCTHW_Heatmap'),
     dict(type='PackActionInputs')
 ]
